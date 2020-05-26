@@ -4,12 +4,17 @@ import KituraContracts
 
 func initializeHealthRoutes(app: App) {
     
-    app.router.get("/health") { (respondWith: (Status?, RequestError?) -> Void) -> Void in
-        if health.status.state == .UP {
-            respondWith(health.status, nil)
-        } else {
-            respondWith(nil, RequestError(.serviceUnavailable, body: health.status))
-        }
+    app.router.post("/add", handler: app.postHandler)
+    app.router.get("/list", handler: app.getAllHandler)
+}
+
+extension App {
+    static var codableStore = [Task]()
+    func postHandler(book: Task, completion: (Task?, RequestError?) -> Void) {
+        App.codableStore.append(book)
+        completion(book, nil)
     }
-    
+    func getAllHandler(completion: ([Task]?, RequestError?) -> Void) {
+        completion(App.codableStore, nil)
+    }
 }
