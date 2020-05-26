@@ -1,0 +1,3 @@
+.build/							usr/src/mathbattleback
+terraform/scripts/install.sh	usr/src/mathbattleback
+terraform/scripts/start.sh		usr/src/mathbattleback
