@@ -4,10 +4,9 @@ import LoggerAPI
 import Configuration
 import CloudEnvironment
 import KituraContracts
-import Health
+import CredentialsJWT
 
 public let projectPath = ConfigurationManager.BasePath.project.path
-public let health = Health()
 
 public class App {
     let router = Router()
@@ -22,7 +21,7 @@ public class App {
 
     func postInit() throws {
         // Endpoints
-        initializeHealthRoutes(app: self)
+        initializeJWTRoutes(app: self)
     }
 
     public func run() throws {

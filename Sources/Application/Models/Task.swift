@@ -6,7 +6,6 @@
 //
 
 import LoggerAPI
-import Health
 import KituraContracts
 
 
