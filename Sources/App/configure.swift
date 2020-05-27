@@ -13,28 +13,15 @@ public func configure(_ app: Application) throws {
         username: Environment.get("DATABASE_USERNAME") ?? "podvorniy",
         password: Environment.get("DATABASE_PASSWORD") ?? "Podvorniy1303©",
         database: Environment.get("DATABASE_NAME") ?? "vapor"
-    ), as: .psql)
-
+        ), as: .psql)
+    
     app.migrations.add(CreateUsers())
     app.migrations.add(CreateTokens())
-    // Create a new NIO websocket server
-    
-    app.webSocket("ws") { (req: Request, ws: WebSocket) -> () in
-        if let result = try? req.auth.require(User.self).asPublic() {
-            ws.send("AUTH_SUCCESS")
-        } else {
-            ws.send("AUTH_FAILED")
-            ws.close()
-        }
-        
-        ws.onText { ws, text in
-            ws.send(text)
-        }
-        
-        ws.onClose.whenComplete { result in
-            print("Dissconnect")
-        }
-    }
+    app.migrations.add(AddAdminFieldUsers())
+    app.migrations.add(CreateCourses())
+    app.migrations.add(CreateCourseMembers())
+    app.migrations.add(AddStatusFieldCourseMember())
+    app.migrations.add(CreateChats())
     
     // register routes
     try routes(app)
