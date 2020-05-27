@@ -19,12 +19,21 @@ public func configure(_ app: Application) throws {
     app.migrations.add(CreateTokens())
     // Create a new NIO websocket server
     
-    app.webSocket("ws") { req, ws in
+    app.webSocket("ws") { (req: Request, ws: WebSocket) -> () in
+        if let result = try? req.auth.require(User.self).asPublic() {
+            ws.send("AUTH_SUCCESS")
+        } else {
+            ws.send("AUTH_FAILED")
+            ws.close()
+        }
+        
         ws.onText { ws, text in
             ws.send(text)
         }
-        ws.send("fd");
-        print(ws)
+        
+        ws.onClose.whenComplete { result in
+            print("Dissconnect")
+        }
     }
     
     // register routes
