@@ -5,5 +5,5 @@ func routes(_ app: Application) throws {
     
     try app.register(collection: UserController())
     try app.register(collection: CourseController())
-    try app.register(collection: WebSocketController())
+    try app.register(collection: ChatController())
 }

@@ -15,6 +15,7 @@ public func configure(_ app: Application) throws {
         database: Environment.get("DATABASE_NAME") ?? "vapor"
         ), as: .psql)
     
+    // Migrations block
     app.migrations.add(CreateUsers())
     app.migrations.add(CreateTokens())
     app.migrations.add(AddAdminFieldUsers())
@@ -22,6 +23,7 @@ public func configure(_ app: Application) throws {
     app.migrations.add(CreateCourseMembers())
     app.migrations.add(AddStatusFieldCourseMember())
     app.migrations.add(CreateChats())
+    app.migrations.add(AddChatUserRelation())
     
     // register routes
     try routes(app)

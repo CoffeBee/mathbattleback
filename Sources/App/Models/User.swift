@@ -28,6 +28,9 @@ final class User: Model {
     @Siblings(through: CourseMember.self, from: \.$user, to: \.$course)
     var courses: [Course]
     
+    @Siblings(through: ChatMember.self, from: \.$user, to: \.$chat)
+    var chats: [Chat]
+    
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
     
