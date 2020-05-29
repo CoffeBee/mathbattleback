@@ -13,6 +13,10 @@ struct CourseInvitation: Content {
     let password: String
 }
 
+struct DataByCourse: Content {
+    let id: UUID
+}
+
 extension Course: Validatable {
     static func validations(_ validations: inout Validations) {
         validations.add("name", as: String.self, is: !.empty)
@@ -22,6 +26,12 @@ extension Course: Validatable {
 
 struct CourseController: RouteCollection {
     
+    let controller : WebSocketBotController
+    
+    init(controller : WebSocketBotController) {
+        self.controller = controller
+    }
+    
     func boot(routes: RoutesBuilder) throws {
         let coursesRoute = routes.grouped("courses")
         let tokenProtected = coursesRoute.grouped(Token.authenticator())
@@ -29,6 +39,7 @@ struct CourseController: RouteCollection {
         
         tokenProtected.post("join", use: joinCourse)
         tokenProtected.post("create", use: createCourse)
+        tokenProtected.post("chats", use: getMyChatsInCourse)
     }
     
     func getMyCourses(req: Request) throws -> EventLoopFuture<[Course.Public]> {
@@ -92,6 +103,7 @@ struct CourseController: RouteCollection {
     func checkIsRegestationExists(userID : UUID, req: Request) throws -> EventLoopFuture<Bool> {
         
         let userID = try  req.auth.require(User.self).id
+        
         return User
             .find(userID, on: req.db)
             .unwrap(or: Abort(.notFound))
@@ -101,5 +113,22 @@ struct CourseController: RouteCollection {
                     .first()
         }.map { $0 != nil }
     }
+    
+    func getMyChatsInCourse(req: Request) throws -> EventLoopFuture<[Chat]> {
+        
+        let userID = try req.auth.require(User.self).id!
+        let courseID = try req.content.decode(DataByCourse.self).id
+        
+        return ChatMember
+            .query(on: req.db)
+            .filter(\.$user.$id == userID).filter(\.$course.$id == courseID)
+            .all()
+            .map {
+                $0.map {
+                    $0.chat
+                }
+        }
+    }
+    
     
 }

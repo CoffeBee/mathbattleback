@@ -32,6 +32,9 @@ final class Course: Model, Content {
     @Siblings(through: CourseMember.self, from: \.$course, to: \.$user)
     var users: [User]
     
+    @Siblings(through: BotMember.self, from: \.$course, to: \.$bot)
+    var bots: [Bot]
+    
     init() {}
     
     init(id: UUID? = nil, name: String, password: String) {

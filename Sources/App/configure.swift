@@ -24,7 +24,16 @@ public func configure(_ app: Application) throws {
     app.migrations.add(AddStatusFieldCourseMember())
     app.migrations.add(CreateChats())
     app.migrations.add(AddChatUserRelation())
+    app.migrations.add(CreateBots())
+    app.migrations.add(AddBotChatRelation())
+    app.migrations.add(AddChatMemberCouseRelation())
+    app.migrations.add(AddApiLevelUsers())
+    app.migrations.add(CreateBotMember())
+    app.migrations.add(CreateMessage())
+    
     
     // register routes
     try routes(app)
+    
+    //
 }

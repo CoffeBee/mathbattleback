@@ -2,6 +2,12 @@
 import Fluent
 import Vapor
 
+enum UserApiLevel: String, Codable {
+    case noAccess
+    case teacher
+    case admin
+}
+
 final class User: Model {
     struct Public: Content {
         let username: String
@@ -24,6 +30,9 @@ final class User: Model {
     
     @Field(key: "is_admin")
     var isAdmin: Bool
+    
+    @Field(key: "api_level")
+    var apiLevel: UserApiLevel
         
     @Siblings(through: CourseMember.self, from: \.$user, to: \.$course)
     var courses: [Course]
@@ -39,11 +48,22 @@ final class User: Model {
     
     init() {}
     
-    init(id: UUID? = nil, username: String, passwordHash: String, isAdmin: Bool = false) {
+    init(id: UUID? = nil, username: String, passwordHash: String, isAdmin: Bool = false, apiLelve: UserApiLevel = .noAccess) {
         self.id = id
         self.username = username
         self.passwordHash = passwordHash
         self.isAdmin = isAdmin
+    }
+}
+
+extension User: Hashable {
+    
+    static func == (lhs: User, rhs: User) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 
@@ -54,7 +74,7 @@ extension User {
     
     func createToken(source: SessionSource) throws -> Token {
         let calendar = Calendar(identifier: .gregorian)
-        let expiryDate = calendar.date(byAdding: .year, value: 1, to: Date())
+        let expiryDate = calendar.date(byAdding: .day, value: 1, to: Date())
         return try Token(userId: requireID(),
                          token: [UInt8].random(count: 16).base64, source: source, expiresAt: expiryDate)
     }
