@@ -91,6 +91,15 @@ enum MessageSource : String, Codable {
 }
 
 final class Message: Model, Content {
+    
+    struct PublicBot: Content {
+        let id: UUID?
+        let chat: Chat
+        let user: User
+        let text: String
+        let sendAt: Date?
+    }
+    
     static let schema = "message"
     
     @ID(key: "id")
@@ -111,16 +120,33 @@ final class Message: Model, Content {
     @Timestamp(key: "send_at", on: .create)
     var sendAt: Date?
     
-    
+    @Field(key: "message_source")
+    var soureType: MessageSource
     
     init() {}
     
-    init(id: UUID? = nil, chatID: UUID, user_ownerID: UUID, bot_ownerID: UUID, text: String) {
+    init(id: UUID? = nil, chatID: UUID, user_ownerID: UUID?, bot_ownerID: UUID?, text: String) {
         self.id = id
         self.$chat.id = chatID
-        self.$user_owner.id = user_ownerID
-        self.$bot_owner.id = bot_ownerID
+        if (user_ownerID != nil) {
+            self.$user_owner.id = user_ownerID!
+            self.soureType = .user
+        }
+        else if (bot_ownerID != nil) {
+            self.$bot_owner.id = bot_ownerID!
+            self.soureType = .bot
+        }
+        else {
+            self.soureType = .system
+        }
+        
         self.text = text
     }
     
+}
+
+extension Message {
+    func asPublic() throws -> PublicBot {
+        PublicBot(id: id, chat: chat, user: user_owner, text: text, sendAt: sendAt)
+    }
 }

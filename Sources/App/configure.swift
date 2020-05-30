@@ -30,6 +30,7 @@ public func configure(_ app: Application) throws {
     app.migrations.add(AddApiLevelUsers())
     app.migrations.add(CreateBotMember())
     app.migrations.add(CreateMessage())
+    app.migrations.add(AddMessageSourceTypeMessages())
     
     
     // register routes

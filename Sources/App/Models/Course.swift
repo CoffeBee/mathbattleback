@@ -10,6 +10,7 @@ import Vapor
 
 final class Course: Model, Content {
     struct Public : Content {
+        let id: UUID
         let name : String
     }
     static let schema = "courses"
@@ -45,7 +46,7 @@ final class Course: Model, Content {
 
 extension Course {
     func asPublic() throws -> Public {
-        Public(name: name)
+        Public(id : id!, name: name)
     }
 }
 
@@ -57,6 +58,20 @@ enum MemeberStatus: String, Codable {
 }
 
 final class CourseMember: Model, Content {
+    
+    struct PublicBot: Content {
+        let id: UUID?
+        let course: Course.Public
+        let user: User.Public
+        let status: MemeberStatus
+    }
+    
+    struct PublicBotAlways: Content {
+        let id: UUID?
+        let user: User.Public
+        let status: MemeberStatus
+    }
+    
     static let schema = "course_member"
     
     @ID(key: "id")
@@ -85,4 +100,11 @@ final class CourseMember: Model, Content {
     }
 }
 
-
+extension CourseMember {
+    func asPublicBot() throws -> PublicBot {
+        PublicBot(id: id, course: try course.asPublic(), user: try user.asPublic(), status: status)
+    }
+    func asPublicBotAlways() throws -> PublicBotAlways {
+        PublicBotAlways(id: id, user: try user.asPublic(), status: status)
+    }
+}

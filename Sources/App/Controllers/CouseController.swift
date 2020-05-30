@@ -78,6 +78,7 @@ struct CourseController: RouteCollection {
     }
     
     func joinCourse(req: Request) throws -> EventLoopFuture<CourseMember> {
+        
         let userID = try req.auth.require(User.self).id!
         let invitation = try req.content.decode(CourseInvitation.self)
         return try checkIsRegestationExists(userID: userID, req: req).flatMap { exists in
@@ -96,7 +97,6 @@ struct CourseController: RouteCollection {
                         .map { newCourseMember }
             }
         }
-        
         
     }
     

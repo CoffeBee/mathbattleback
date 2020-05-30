@@ -16,9 +16,6 @@ enum SocketState: String {
     case bot
 }
 
-struct BotConnection : Content {
-    let token: UUID
-}
 
 struct ChatJoing: Content {
     let id: UUID
@@ -39,11 +36,16 @@ struct ChatController: RouteCollection {
     
     func webSocketConnect(req : Request, ws : WebSocket) {
         if let user = try? req.auth.require(User.self) {
+            self.controller.addUserConnection(user: user, ws: ws, req: req)
+            ws.onClose.whenComplete {_ in
+                self.controller.deleteUserConnection(user: user)
+            } 
             ws.send("AUTH_SUCCESS \(user.username)")
-        } else {
-            ws.send("AUTH_FAILED")
-            ws.close()
+            return
         }
+        ws.send("AUTH_FAILED")
+        ws.close()
+    
     }
     
     
