@@ -48,11 +48,12 @@ final class User: Model {
     
     init() {}
     
-    init(id: UUID? = nil, username: String, passwordHash: String, isAdmin: Bool = false, apiLelve: UserApiLevel = .noAccess) {
+    init(id: UUID? = nil, username: String, passwordHash: String, isAdmin: Bool = false, apiLevel: UserApiLevel = .noAccess) {
         self.id = id
         self.username = username
         self.passwordHash = passwordHash
         self.isAdmin = isAdmin
+        self.apiLevel = apiLevel
     }
 }
 
