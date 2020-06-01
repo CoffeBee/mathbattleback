@@ -7,7 +7,7 @@
 
 import Vapor
 
-struct HelloCommand: Command {
+struct UserCommand: Command {
     struct Signature: CommandSignature {
         @Argument(name: "username")
         var username: String

@@ -33,7 +33,7 @@ public func configure(_ app: Application) throws {
     app.migrations.add(AddMessageSourceTypeMessages())
     
     
-    app.commands.use(HelloCommand(), as: "hello")
+    app.commands.use(UserCommand(), as: "createsuperuser")
     
     // register routes
     try routes(app)
