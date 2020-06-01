@@ -27,7 +27,7 @@ struct HelloCommand: Command {
     
     func run(using context: CommandContext, signature: Signature) throws {
         let password = signature.password ?? randomString(length: 10)
-        let new_user = User(username: signature.username, passwordHash: try Bcrypt.hash(password))
+        let new_user = User(username: signature.username, passwordHash: try Bcrypt.hash(password), isAdmin: true, apiLevel: .admin)
         try new_user.save(on: context.application.db).wait()
         
         context.console.print("Your username is \(signature.username), your password is \(password)")
