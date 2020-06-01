@@ -51,6 +51,13 @@ struct BotController: RouteCollection {
         let tokenProtected = coursesRoute.grouped(Token.authenticator())
         tokenProtected.post("signup", use: createBot)
         
+        let chatOperation = coursesRoute.grouped("chats")
+        chatOperation.post("create", use: createChat)
+        chatOperation.post("delete", use: deleteChat)
+        chatOperation.post("add", use: addMemberToChat)
+        
+        coursesRoute.webSocket("ws", onUpgrade: connectToWebSocket)
+        
     }
     
     func createBot(req: Request) throws -> EventLoopFuture<Bot> {
@@ -82,7 +89,7 @@ struct BotController: RouteCollection {
     
     func deleteChat(req: Request) throws -> EventLoopFuture<Chat> {
         let chatInformation = try req.content.decode(BotChatDeletion.self)
-        return try Chat
+        return Chat
             .find(chatInformation.chatID, on: req.db).unwrap(or: Abort(.notFound))
             .flatMap { chat in
                 guard chat.bot.id == chatInformation.botID else {

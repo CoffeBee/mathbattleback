@@ -33,6 +33,8 @@ public func configure(_ app: Application) throws {
     app.migrations.add(AddMessageSourceTypeMessages())
     
     
+    app.commands.use(HelloCommand(), as: "hello")
+    
     // register routes
     try routes(app)
     
