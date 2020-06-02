@@ -31,6 +31,6 @@ public func configure(_ app: Application) throws {
     
     // register routes
     try routes(app)
-    
+    database_init(app)
     //
 }
