@@ -17,6 +17,8 @@ struct DataByCourse: Content {
     let id: UUID
 }
 
+
+
 extension Course: Validatable {
     static func validations(_ validations: inout Validations) {
         validations.add("name", as: String.self, is: !.empty)
@@ -102,8 +104,6 @@ struct CourseController: RouteCollection {
     
     func checkIsRegestationExists(userID : UUID, req: Request) throws -> EventLoopFuture<Bool> {
         
-        let userID = try  req.auth.require(User.self).id
-        
         return User
             .find(userID, on: req.db)
             .unwrap(or: Abort(.notFound))
@@ -112,6 +112,10 @@ struct CourseController: RouteCollection {
                     .query(on: req.db)
                     .first()
         }.map { $0 != nil }
+    }
+    
+    func checkIsAdminInCourse(userID: UUID, courseID: UUID, req: Request) throws -> EventLoopFuture<Bool> {
+        return CourseMember.query(on: req.db).filter(\.$user.$id == userID).filter(\.$course.$id == courseID).filter(\.$status == MemeberStatus.admin).first().map {$0 != nil}
     }
     
     func getMyChatsInCourse(req: Request) throws -> EventLoopFuture<[Chat]> {

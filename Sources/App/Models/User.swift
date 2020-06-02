@@ -25,6 +25,12 @@ final class User: Model {
     @Field(key: "username")
     var username: String
     
+    @Field(key: "name")
+    var name: String
+    
+    @Field(key: "surname")
+    var surname: String
+    
     @Field(key: "password_hash")
     var passwordHash: String
     
@@ -48,9 +54,11 @@ final class User: Model {
     
     init() {}
     
-    init(id: UUID? = nil, username: String, passwordHash: String, isAdmin: Bool = false, apiLevel: UserApiLevel = .noAccess) {
+    init(id: UUID? = nil, username: String, name: String, surname: String, passwordHash: String, isAdmin: Bool = false, apiLevel: UserApiLevel = .noAccess) {
         self.id = id
         self.username = username
+        self.name = name
+        self.surname = surname
         self.passwordHash = passwordHash
         self.isAdmin = isAdmin
         self.apiLevel = apiLevel
@@ -70,7 +78,7 @@ extension User: Hashable {
 
 extension User {
     static func create(from userSignup: UserSignup) throws -> User {
-        User(username: userSignup.username, passwordHash: try Bcrypt.hash(userSignup.password))
+        User(username: userSignup.username, name: userSignup.name, surname: userSignup.surname, passwordHash: try Bcrypt.hash(userSignup.password))
     }
     
     func createToken(source: SessionSource) throws -> Token {

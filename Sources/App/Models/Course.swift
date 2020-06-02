@@ -24,6 +24,9 @@ final class Course: Model, Content {
     @Field(key: "password")
     var password: String
     
+    @Field(key: "is_super")
+    var isSuper: Bool
+    
     @Children(for: \.$course)
     var chats: [Chat]
     
@@ -38,9 +41,11 @@ final class Course: Model, Content {
     
     init() {}
     
-    init(id: UUID? = nil, name: String, password: String) {
+    init(id: UUID? = nil, name: String, password: String, isSuper: Bool = false) {
         self.id = id
         self.name = name
+        self.isSuper = isSuper
+        self.password = password
     }
 }
 

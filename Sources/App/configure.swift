@@ -31,9 +31,12 @@ public func configure(_ app: Application) throws {
     app.migrations.add(CreateBotMember())
     app.migrations.add(CreateMessage())
     app.migrations.add(AddMessageSourceTypeMessages())
+    app.migrations.add(AddSuperCourse())
+    app.migrations.add(AddNameUsers())
     
     
     app.commands.use(UserCommand(), as: "createsuperuser")
+    app.commands.use(CourseCommand(), as: "createsupercourse")
     
     // register routes
     try routes(app)

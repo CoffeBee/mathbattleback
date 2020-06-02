@@ -33,6 +33,12 @@ struct BotChatUserAdding: Content {
     let status: MemeberStatus
 }
 
+struct AddBot: Content {
+    let botID: UUID
+    let courseID: UUID
+    let newBotID: UUID
+}
+
 struct BotConnection: Content {
     let botID: UUID
 }
@@ -115,6 +121,19 @@ struct BotController: RouteCollection {
         }
     }
     
+    func addBotToCourse(req: Request) throws -> EventLoopFuture<BotMember> {
+        let newInformation = try req.content.decode(AddBot.self)
+        return try checkAccessToCourse(req: req, botID: newInformation.botID, courseID: newInformation.courseID).flatMap { access in
+            guard access else {
+                return req.eventLoop.makeFailedFuture(Abort(.forbidden))
+            }
+            let new_bot_member = BotMember(courseID: newInformation.courseID, botID: newInformation.newBotID)
+            return new_bot_member.save(on: req.db).map {
+                new_bot_member
+            }
+        }
+    }
+    
     func checkAccessToCourse(req: Request, botID : UUID, courseID: UUID) throws -> EventLoopFuture<Bool> {
         return BotMember
             .query(on: req.db)
@@ -149,8 +168,7 @@ struct BotController: RouteCollection {
 enum EventType: String, Codable {
     case message
     case join
-    case connect
-    case disconnet
+    case add
 }
 
 struct MessageEvent: Content {
@@ -163,6 +181,10 @@ struct JoinEvent: Content {
     let data: CourseMember.PublicBot
 }
 
+struct AddEvent: Content {
+    let type: EventType
+    let data: Course.Public
+}
 
 public class WebSocketBotController {
     var botSockets = [Bot : WebSocket]()
@@ -213,6 +235,15 @@ public class WebSocketBotController {
         sendDataToCourse(course: member.course, dataString: dataString)
     }
     
+    func addBotToCourse(bot: BotMember) throws {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(AddEvent(type: .add, data: bot.course.asPublic()))
+        let dataString = String(data: data, encoding: .utf8) ?? "{}"
+        if (botSockets[bot.bot] != nil) {
+            botSockets[bot.bot]?.send(dataString)
+        }
+    }
+    
     func sendDataToChat(chat: Chat, dataString: String, toBot: Bool = true) {
         for user in chat.users {
             if (userChats[user] != nil && userChats[user]!.id == chat.id) {
@@ -227,11 +258,6 @@ public class WebSocketBotController {
     }
     
     func sendDataToCourse(course: Course, dataString: String, toBot: Bool = true) {
-        for user in course.users {
-            if (userChats[user] != nil && userChats[user]!.course.id == course.id) {
-                userSockets[user]!.send(dataString)
-            }
-        }
         if (toBot) {
             for bot in course.bots {
                 if (botSockets[bot] != nil) {

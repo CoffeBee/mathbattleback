@@ -5,6 +5,8 @@ import Fluent
 struct UserSignup: Content {
     let username: String
     let password: String
+    let name: String
+    let surname: String
 }
 
 struct NewSession: Content {
@@ -49,6 +51,11 @@ struct UserController: RouteCollection {
             }
             token = newToken
             return token.save(on: req.db)
+        }.flatMap {
+            return Course.query(on: req.db).filter(\.$isSuper == true).first().unwrap(or: Abort(.forbidden)).map {
+                let new_member = CourseMember(courseID: $0.id!, userID: user.id!, status: .viewer)
+                new_member.save(on: req.db)
+            }
         }.flatMapThrowing {
             NewSession(token: token.value, user: try user.asPublic())
         }

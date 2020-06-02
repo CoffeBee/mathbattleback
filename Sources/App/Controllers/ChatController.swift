@@ -16,6 +16,9 @@ enum SocketState: String {
     case bot
 }
 
+struct SendMessage: Content {
+    let text: String
+}
 
 struct ChatJoing: Content {
     let id: UUID
@@ -49,21 +52,38 @@ struct ChatController: RouteCollection {
     }
     
     
+    func sendMessage(req: Request) throws -> EventLoopFuture<Message> {
+        let user = try req.auth.require(User.self)
+        let text = try req.content.decode(SendMessage.self).text
+        if let chat = self.controller.getChatByUser(user: user) {
+            let new_message = Message(chatID: chat.id!, user_ownerID: user.id!, bot_ownerID: nil, text: text)
+            return new_message.save(on: req.db).map {
+                try! self.controller.sendMessageToChat(message: new_message)
+                return new_message
+            }
+        }
+        else {
+            return req.eventLoop.makeFailedFuture(Abort(.notFound))
+        }
+        
+    }
     
     func selectChat(req: Request) throws -> EventLoopFuture<Chat> {
-        let userID = try req.auth.require(User.self).id!
+        let user = try req.auth.require(User.self)
+        let userID = user.id!
         let chatID = try req.content.decode(ChatJoing.self).id
         return try isUserInChat(userID : userID, chatID: chatID, req: req).flatMap {exists in
             guard !exists else {
                 return req.eventLoop.makeFailedFuture(Abort(.forbidden))
             }
-            return ChatMember
-                .query(on: req.db)
-                .filter(\.$chat.$id == chatID)
-                .filter(\.$user.$id == userID)
-                .first()
+            return Chat
+                .find(chatID, on: req.db)
                 .unwrap(or: Abort(.notFound))
-                .map { $0.chat }
+                .map { chat in
+                    self.controller.userSelectChat(user: user, chat: chat)
+                    return chat
+                
+            }
         }
     }
     
