@@ -52,9 +52,11 @@ struct UserController: RouteCollection {
             token = newToken
             return token.save(on: req.db)
         }.flatMap {
-            return Course.query(on: req.db).filter(\.$isSuper == true).first().unwrap(or: Abort(.forbidden)).map {
-                let new_member = CourseMember(courseID: $0.id!, userID: user.id!, status: .viewer)
-                new_member.save(on: req.db)
+            return Course.query(on: req.db).filter(\.$isSuper == true).first().map {
+                if let course = $0 {
+                    let new_member = CourseMember(courseID: course.id!, userID: user.id!, status: .viewer)
+                    new_member.save(on: req.db)
+                }
             }
         }.flatMapThrowing {
             NewSession(token: token.value, user: try user.asPublic())

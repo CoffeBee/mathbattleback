@@ -7,15 +7,6 @@ public func configure(_ app: Application) throws {
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory)
     
-    
-    app.databases.use(.postgres(
-        hostname: Environment.get("DATABASE_HOST") ?? "localhost",
-        username: Environment.get("DATABASE_USERNAME") ?? "podvorniy",
-        password: Environment.get("DATABASE_PASSWORD") ?? "Podvorniy1303©",
-        database: Environment.get("DATABASE_NAME") ?? "vapor"
-        ), as: .psql)
-    
-    // Migrations block
     app.migrations.add(CreateUsers())
     app.migrations.add(CreateTokens())
     app.migrations.add(AddAdminFieldUsers())
