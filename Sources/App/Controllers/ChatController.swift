@@ -35,6 +35,7 @@ struct ChatController: RouteCollection {
         let coursesRoute = routes.grouped("chat")
         let tokenProtected = coursesRoute.grouped(Token.authenticator())
         tokenProtected.get("select", use: selectChat)
+        tokenProtected.post("send", use: sendMessage)
         tokenProtected.webSocket("", onUpgrade: webSocketConnect)
     }
     
