@@ -15,5 +15,8 @@ func database(_ app: Application) throws {
         password: Environment.get("DATABASE_PASSWORD") ?? "Podvorniy1303©",
         database: Environment.get("DATABASE_NAME") ?? "vapor"
         ), as: .psql)
-
+    
+    
+    
+    
 }
