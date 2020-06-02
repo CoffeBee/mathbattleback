@@ -47,6 +47,7 @@ struct CourseController: RouteCollection {
         tokenProtected.post("join", use: joinCourse)
         tokenProtected.post("create", use: createCourse)
         tokenProtected.post("chats", use: getMyChatsInCourse)
+        tokenProtected.post("bot", use: addBotToCourse)
     }
     
     func getMyCourses(req: Request) throws -> EventLoopFuture<[Course.Public]> {
