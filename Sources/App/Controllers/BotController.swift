@@ -111,7 +111,7 @@ struct BotController: RouteCollection {
         return  Chat
             .find(chatInformation.chatID, on: req.db).unwrap(or: Abort(.notFound))
             .flatMap { chat in
-                guard chat.bot.id == chatInformation.botID else {
+                guard chat.$bot.id == chatInformation.botID else {
                     return req.eventLoop.makeFailedFuture(Abort(.forbidden))
                 }
                 return User.find(chatInformation.userID, on: req.db).unwrap(or: Abort(.notFound)).flatMap { user in
