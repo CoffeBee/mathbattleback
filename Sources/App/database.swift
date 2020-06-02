@@ -17,6 +17,4 @@ func database(_ app: Application) throws {
         ), as: .psql)
     
     
-    
-    
 }
