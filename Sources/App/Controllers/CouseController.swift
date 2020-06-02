@@ -18,6 +18,11 @@ struct DataByCourse: Content {
 }
 
 
+struct AddBotToCourse: Content {
+    let courseID: UUID
+    let botID: UUID
+}
+
 
 extension Course: Validatable {
     static func validations(_ validations: inout Validations) {
@@ -103,6 +108,7 @@ struct CourseController: RouteCollection {
         
     }
     
+    
     func checkIsRegestationExists(userID : UUID, req: Request) throws -> EventLoopFuture<Bool> {
         
         return User
@@ -135,5 +141,21 @@ struct CourseController: RouteCollection {
         }
     }
     
-    
+    func addBotToCourse(req: Request) throws -> EventLoopFuture<BotMember> {
+        let userID = try req.auth.require(User.self).id!
+        let information = try req.content.decode(AddBotToCourse.self)
+        return try checkIsAdminInCourse(userID: userID, courseID: information.courseID, req: req).flatMap {admin in
+            guard admin else {
+                return req.eventLoop.makeFailedFuture(Abort(.forbidden))
+            }
+            return Bot.find(information.botID, on: req.db).flatMap { bot in
+                guard bot != nil else {
+                    return req.eventLoop.makeFailedFuture(Abort(.notFound))
+                }
+                let new_bot_member = BotMember(courseID: information.courseID, botID: information.botID)
+                return new_bot_member.save(on: req.db).map {new_bot_member}
+            }
+        }
+    }
+
 }
