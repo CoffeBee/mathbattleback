@@ -85,7 +85,7 @@ struct BotController: RouteCollection {
             guard access else {
                 return req.eventLoop.makeFailedFuture(Abort(.forbidden))
             }
-            let new_chat = Chat(name: chatInformation.name, about: chatInformation.about, courseID: chatInformation.courseID)
+            let new_chat = Chat(name: chatInformation.name, about: chatInformation.about, courseID: chatInformation.courseID, botID: chatInformation.botID)
             return new_chat.save(on: req.db).map {
                 new_chat
             }

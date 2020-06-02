@@ -36,11 +36,12 @@ final class Chat: Model, Content {
     
     init() {}
     
-    init(id: UUID? = nil, name: String, about: String, courseID: UUID) {
+    init(id: UUID? = nil, name: String, about: String, courseID: UUID, botID: UUID) {
         self.id = id
         self.name = name
         self.about = about
         self.$course.id = courseID
+        self.$bot.id = botID
     }
 }
 
