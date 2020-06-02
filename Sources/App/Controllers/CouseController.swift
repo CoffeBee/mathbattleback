@@ -47,6 +47,7 @@ struct CourseController: RouteCollection {
     func getMyCourses(req: Request) throws -> EventLoopFuture<[Course.Public]> {
         
         let userID = try  req.auth.require(User.self).id
+        
         return User
             .find(userID, on: req.db)
             .unwrap(or: Abort(.notFound))
