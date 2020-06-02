@@ -34,6 +34,7 @@ struct ChatController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let coursesRoute = routes.grouped("chat")
         let tokenProtected = coursesRoute.grouped(Token.authenticator())
+        tokenProtected.get("select", use: selectChat)
         tokenProtected.webSocket("", onUpgrade: webSocketConnect)
     }
     
@@ -82,7 +83,6 @@ struct ChatController: RouteCollection {
                 .map { chat in
                     self.controller.userSelectChat(user: user, chat: chat)
                     return chat
-                
             }
         }
     }
