@@ -74,7 +74,7 @@ struct ChatController: RouteCollection {
         let userID = user.id!
         let chatID = try req.content.decode(ChatJoing.self).id
         return try isUserInChat(userID : userID, chatID: chatID, req: req).flatMap {exists in
-            guard !exists else {
+            guard exists else {
                 return req.eventLoop.makeFailedFuture(Abort(.forbidden))
             }
             return Chat
