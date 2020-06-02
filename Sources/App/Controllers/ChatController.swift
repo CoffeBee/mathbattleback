@@ -78,7 +78,8 @@ struct ChatController: RouteCollection {
                 return req.eventLoop.makeFailedFuture(Abort(.forbidden))
             }
             return Chat
-                .find(chatID, on: req.db)
+                .query(on: req.db)
+                .filter(\.$id == chatID).with(\.$messages).first()
                 .unwrap(or: Abort(.notFound))
                 .map { chat in
                     self.controller.userSelectChat(user: user, chat: chat)
