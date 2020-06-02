@@ -26,6 +26,7 @@ public func configure(_ app: Application) throws {
     app.migrations.add(AddStatusFieldCourseMember())
     app.migrations.add(CreateChats())
     app.migrations.add(AddChatUserRelation())
+    app.migrations.add(AddPermissionChatMember())
     app.migrations.add(CreateBots())
     app.migrations.add(AddBotChatRelation())
     app.migrations.add(AddChatMemberCouseRelation())
