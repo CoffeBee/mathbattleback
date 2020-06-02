@@ -30,7 +30,7 @@ struct BotChatUserAdding: Content {
     let botID: UUID
     let chatID: UUID
     let userID: UUID
-    let status: MemeberStatus
+    let status: ChatPermission
 }
 
 struct AddBot: Content {
@@ -115,7 +115,7 @@ struct BotController: RouteCollection {
                     return req.eventLoop.makeFailedFuture(Abort(.forbidden))
                 }
                 return User.find(chatInformation.userID, on: req.db).unwrap(or: Abort(.notFound)).flatMap { user in
-                    let new_member = ChatMember(chatID: chatInformation.chatID, userID: chatInformation.userID, courseID: chat.$course.id)
+                    let new_member = ChatMember(chatID: chatInformation.chatID, userID: chatInformation.userID, courseID: chat.$course.id, permission: chatInformation.status)
                     return new_member.save(on: req.db).map {new_member}
                 }
         }

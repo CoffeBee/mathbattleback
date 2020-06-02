@@ -48,8 +48,6 @@ final class Chat: Model, Content {
 enum ChatPermission: String, Codable {
     case read
     case write
-    case command
-    
 }
 
 final class ChatMember : Model, Content {
@@ -77,11 +75,12 @@ final class ChatMember : Model, Content {
     
     init() {}
     
-    init(id: UUID? = nil, chatID: UUID, userID: UUID, courseID: UUID) {
+    init(id: UUID? = nil, chatID: UUID, userID: UUID, courseID: UUID, permission: ChatPermission) {
         self.id = id
         self.$chat.id = chatID
         self.$user.id = userID
         self.$course.id = courseID
+        self.permission = permission
     }
 }
 
