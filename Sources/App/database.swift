@@ -8,7 +8,7 @@
 import Fluent
 import Vapor
 
-func database(_ app: Application) throws {
+func database_init(_ app: Application) {
     app.databases.use(.postgres(
         hostname: Environment.get("DATABASE_HOST") ?? "localhost",
         username: Environment.get("DATABASE_USERNAME") ?? "podvorniy",
