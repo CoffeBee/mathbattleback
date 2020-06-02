@@ -7,3 +7,4 @@ DerivedData/
 db.sqlite
 .swiftpm
 build
+Sources/App/database.swift
