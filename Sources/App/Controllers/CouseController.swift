@@ -133,13 +133,8 @@ struct CourseController: RouteCollection {
         
         return ChatMember
             .query(on: req.db)
-            .filter(\.$user.$id == userID).filter(\.$course.$id == courseID)
-            .all()
-            .map {
-                $0.map {
-                    $0.chat
-                }
-        }
+            .filter(\.$user.$id == userID).filter(\.$course.$id == courseID).with(\.$chat)
+            .all().map { $0.map{ $0.chat } }
     }
     
     func addBotToCourse(req: Request) throws -> EventLoopFuture<BotMember> {
@@ -158,5 +153,5 @@ struct CourseController: RouteCollection {
             }
         }
     }
-
+    
 }
