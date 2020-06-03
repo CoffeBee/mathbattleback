@@ -94,8 +94,7 @@ final class Message: Model, Content {
     
     struct PublicBot: Content {
         let id: UUID?
-        let chat: Chat
-        let user: User
+        let user: User.Public
         let text: String
         let sendAt: Date?
     }
@@ -111,8 +110,6 @@ final class Message: Model, Content {
     @Parent(key: "user_owner_id")
     var user_owner: User
     
-    @Parent(key: "bot_owner_id")
-    var bot_owner: User
     
     @Field(key: "text")
     var text: String
@@ -125,28 +122,24 @@ final class Message: Model, Content {
     
     init() {}
     
-    init(id: UUID? = nil, chatID: UUID, user_ownerID: UUID?, bot_ownerID: UUID?, text: String) {
+    init(id: UUID? = nil, chatID: UUID, user_ownerID: UUID, status: MessageSource, text: String) {
         self.id = id
         self.$chat.id = chatID
-        if (user_ownerID != nil) {
-            self.$user_owner.id = user_ownerID!
-            self.soureType = .user
-        }
-        else if (bot_ownerID != nil) {
-            self.$bot_owner.id = bot_ownerID!
-            self.soureType = .bot
-        }
-        else {
-            self.soureType = .system
-        }
-        
+        self.$user_owner.id = user_ownerID
+        self.soureType = status
         self.text = text
     }
     
 }
 
 extension Message {
-    func asPublic() throws -> PublicBot {
-        PublicBot(id: id, chat: chat, user: user_owner, text: text, sendAt: sendAt)
+    func asPublic(req: Request) throws -> EventLoopFuture<Message.PublicBot> {
+        return try self.$user_owner.query(on: req.db).first().unwrap(or: Abort(.notFound)).map { user in
+            return PublicBot(id: self.id, user: try! user.asPublic(), text: self.text, sendAt: self.sendAt)
+        }
+        
+    }
+    func asPublicMessage() throws -> Message.PublicBot {
+        return PublicBot(id: self.id, user: try user_owner.asPublic(), text: self.text, sendAt: self.sendAt)
     }
 }

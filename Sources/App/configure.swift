@@ -36,6 +36,8 @@ public func configure(_ app: Application) throws {
     app.migrations.add(AddMessageSourceTypeMessages())
     app.migrations.add(AddSuperCourse())
     app.migrations.add(AddNameUsers())
+    app.migrations.add(DeleteBotOwnerMessage())
+    app.migrations.add(AddSourceMessage())
     
     
     app.commands.use(UserCommand(), as: "createsuperuser")

@@ -34,33 +34,39 @@ struct ChatController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let coursesRoute = routes.grouped("chat")
         let tokenProtected = coursesRoute.grouped(Token.authenticator())
-        tokenProtected.get("select", use: selectChat)
+        tokenProtected.post("select", use: selectChat)
         tokenProtected.post("send", use: sendMessage)
-        tokenProtected.webSocket("", onUpgrade: webSocketConnect)
+        coursesRoute.webSocket("", onUpgrade: webSocketConnect)
     }
     
     func webSocketConnect(req : Request, ws : WebSocket) {
-        if let user = try? req.auth.require(User.self) {
-            self.controller.addUserConnection(user: user, ws: ws, req: req)
-            ws.onClose.whenComplete {_ in
-                self.controller.deleteUserConnection(user: user)
-            } 
-            ws.send("AUTH_SUCCESS \(user.username)")
-            return
+       ws.onText { ws, text in
+            Token.query(on: req.db).filter(\.$value == text).with(\.$user).first().map { t in
+                if let token = t {
+                    self.controller.addUserConnection(userID: token.user.id!, ws: ws, req: req)
+                    ws.onClose.whenComplete {_ in
+                        self.controller.deleteUserConnection(userID: token.user.id!)
+                    }
+                    ws.send("AUTH_SUCCESS \(token.user.username)")
+                    return
+                }else {
+                    ws.send("AUTH_FAILED")
+                    ws.close()
+                }
+                
+            }
         }
-        ws.send("AUTH_FAILED")
-        ws.close()
-    
     }
     
     
     func sendMessage(req: Request) throws -> EventLoopFuture<Message> {
         let user = try req.auth.require(User.self)
         let text = try req.content.decode(SendMessage.self).text
-        if let chat = self.controller.getChatByUser(user: user) {
-            let new_message = Message(chatID: chat.id!, user_ownerID: user.id!, bot_ownerID: nil, text: text)
+        
+        if let chat = self.controller.getChatByUser(userID: user.id!) {
+            let new_message = Message(chatID: chat, user_ownerID: user.id!, status: .user, text: text)
             return new_message.save(on: req.db).map {
-                try! self.controller.sendMessageToChat(message: new_message)
+                try! self.controller.sendMessageToChat(message: new_message, chatID: chat, req: req)
                 return new_message
             }
         }
@@ -70,7 +76,7 @@ struct ChatController: RouteCollection {
         
     }
     
-    func selectChat(req: Request) throws -> EventLoopFuture<Chat> {
+    func selectChat(req: Request) throws -> EventLoopFuture<[Message.PublicBot]> {
         let user = try req.auth.require(User.self)
         let userID = user.id!
         let chatID = try req.content.decode(ChatJoing.self).id
@@ -82,9 +88,13 @@ struct ChatController: RouteCollection {
                 .query(on: req.db)
                 .filter(\.$id == chatID).with(\.$messages).first()
                 .unwrap(or: Abort(.notFound))
-                .map { chat in
-                    self.controller.userSelectChat(user: user, chat: chat)
-                    return chat
+                .flatMap { chat in
+                    self.controller.userSelectChat(userID: user.id!, chatID: chatID)
+                    return try! chat.$messages.query(on: req.db).with(\.$user_owner).all().map {
+                        try! $0.flatMap {
+                            try! $0.asPublicMessage()
+                        }
+                    }
             }
         }
     }

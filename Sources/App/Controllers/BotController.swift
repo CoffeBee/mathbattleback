@@ -71,10 +71,12 @@ struct BotController: RouteCollection {
         let botContent = try req.content.decode(BotSignUp.self)
         if (user.apiLevel == .admin) {
             let newBot = Bot(name: botContent.name, about: botContent.about, ownerID: user.id!)
-            return newBot.save(on: req.db)
-                .map {
+            return newBot.save(on: req.db).map {
                     newBot
-            }
+            }.flatMapThrowing {
+                let newUser = User(id: newBot.id!, username: newBot.name, name: "Бот \(newBot.name)", surname: "", passwordHash: try Bcrypt.hash(newBot.name + "password"), isAdmin: false, apiLevel: .noAccess)
+                newUser.save(on: req.db)
+            }.map { newBot }
         }
         return req.eventLoop.makeFailedFuture(Abort(.forbidden))
     }
@@ -150,9 +152,9 @@ struct BotController: RouteCollection {
                 guard exists == nil else {
                     ws.send("AUTH_SUCCESS")
                     ws.onClose.whenComplete {_ in
-                        self.controller.deleteBotConnection(bot: exists!)
+                        self.controller.deleteBotConnection(botID: token)
                     }
-                    self.controller.addBotConnection(bot: exists!, ws: ws)
+                    self.controller.addBotConnection(botID: token, ws: ws)
                     return
                 }
                 ws.send("AUTH_FAILD")
@@ -187,81 +189,90 @@ struct AddEvent: Content {
 }
 
 public class WebSocketBotController {
-    var botSockets = [Bot : WebSocket]()
-    var userSockets = [User : WebSocket]()
-    var userRequests = [User : Request]()
-    var userChats = [User : Chat]()
+    var botSockets = [UUID : WebSocket]()
+    var userSockets = [UUID : WebSocket]()
+    var userRequests = [UUID : Request]()
+    var userChats = [UUID : UUID]()
     
     init() {}
     
-    func addBotConnection(bot: Bot, ws: WebSocket){
-        botSockets[bot] = ws
+    func addBotConnection(botID: UUID, ws: WebSocket){
+        botSockets[botID] = ws
     }
     
-    func addUserConnection(user: User, ws: WebSocket, req: Request){
-        userSockets[user] = ws
-        userRequests[user] = req
+    func addUserConnection(userID: UUID, ws: WebSocket, req: Request){
+        userSockets[userID] = ws
+        userRequests[userID] = req
     }
     
-    func deleteBotConnection(bot: Bot) {
-        botSockets[bot] = nil
+    func deleteBotConnection(botID: UUID) {
+        botSockets[botID] = nil
     }
     
-    func deleteUserConnection(user: User) {
-        userChats[user] = nil
-        userSockets[user] = nil
-        userRequests[user] = nil
+    func deleteUserConnection(userID: UUID) {
+        userChats[userID] = nil
+        userSockets[userID] = nil
+        userRequests[userID] = nil
     }
     
-    func userSelectChat(user: User, chat: Chat) {
-        userChats[user] = chat
+    func userSelectChat(userID: UUID, chatID: UUID) {
+        userChats[userID] = chatID
     }
     
-    func getChatByUser(user: User) -> Chat? {
-        return userChats[user]
+    func getChatByUser(userID: UUID) -> UUID? {
+        return userChats[userID]
     }
     
-    func sendMessageToChat(message: Message) throws {
+    func sendMessageToChat(message: Message, chatID: UUID, req: Request) throws {
         let encoder = JSONEncoder()
-        let data = try encoder.encode(MessageEvent(type: .message, data: message.asPublic()))
-        let dataString = String(data: data, encoding: .utf8) ?? "{}"
-        sendDataToChat(chat: message.chat, dataString: dataString, toBot: message.soureType == .user)
+        try message.asPublic(req: req).map { messagePublic in
+            let data = try! encoder.encode(MessageEvent(type: .message, data: messagePublic))
+            let dataString = String(data: data, encoding: .utf8) ?? "{}"
+            self.sendDataToChat(chatID: chatID, dataString: dataString, req: req, toBot: message.soureType == .user)
+        }
+        
     }
     
-    func userJoinToCourse(member: CourseMember) throws {
+    func userJoinToCourse(member: CourseMember, req: Request) throws {
         let encoder = JSONEncoder()
         let data = try encoder.encode(JoinEvent(type: .message, data: member.asPublicBot()))
         let dataString = String(data: data, encoding: .utf8) ?? "{}"
-        sendDataToCourse(course: member.course, dataString: dataString)
+        sendDataToCourse(courseID: member.course.id!, dataString: dataString, req: req)
     }
     
-    func addBotToCourse(bot: BotMember) throws {
-        let encoder = JSONEncoder()
-        let data = try encoder.encode(AddEvent(type: .add, data: bot.course.asPublic()))
-        let dataString = String(data: data, encoding: .utf8) ?? "{}"
-        if (botSockets[bot.bot] != nil) {
-            botSockets[bot.bot]?.send(dataString)
-        }
-    }
-    
-    func sendDataToChat(chat: Chat, dataString: String, toBot: Bool = true) {
-        for user in chat.users {
-            if (userChats[user] != nil && userChats[user]!.id == chat.id) {
-                userSockets[user]!.send(dataString)
+    func sendDataToChat(chatID: UUID, dataString: String, req: Request, toBot: Bool = true) {
+        
+        Chat.query(on: req.db).filter(\.$id == chatID).first().unwrap(or: Abort(.notFound)).map { chat in
+            chat.$users.query(on: req.db).all().map {
+                $0.map {user in
+                    if (self.userChats[user.id!] == chatID && self.userSockets[user.id!] != nil) {
+                        self.userSockets[user.id!]!.send(dataString)
+                    }
+                }
             }
-        }
-        if (toBot) {
-            if (botSockets[chat.bot] != nil) {
-                botSockets[chat.bot]!.send(dataString)
+            if (toBot) {
+                chat.$bot.query(on: req.db).all().map {
+                    $0.map {bot in
+                        if (self.botSockets[bot.id!] != nil) {
+                            self.botSockets[bot.id!]!.send(dataString)
+                        }
+                    }
+                }
             }
+            
         }
+        
     }
     
-    func sendDataToCourse(course: Course, dataString: String, toBot: Bool = true) {
+    func sendDataToCourse(courseID: UUID, dataString: String, req: Request, toBot: Bool = true) {
         if (toBot) {
-            for bot in course.bots {
-                if (botSockets[bot] != nil) {
-                    botSockets[bot]!.send(dataString)
+            Course.find(courseID, on: req.db).unwrap(or: Abort(.notFound)).map {
+                $0.$bots.query(on: req.db).all().map {
+                    $0.map { bot in
+                        if (self.botSockets[bot.id!] != nil) {
+                            self.botSockets[bot.id!]!.send(dataString)
+                        }
+                    }
                 }
             }
         }
