@@ -147,23 +147,26 @@ struct BotController: RouteCollection {
     
     
     func connectToWebSocket(req: Request, ws: WebSocket) {
-        if let token = try? req.content.decode(BotConnection.self).botID {
-            Bot.find(token, on: req.db).map { exists in
-                guard exists == nil else {
-                    ws.send("AUTH_SUCCESS")
-                    ws.onClose.whenComplete {_ in
-                        self.controller.deleteBotConnection(botID: token)
+        ws.onText { ws, text in
+            if let id = UUID(uuidString: text) {
+                Bot.find(id, on: req.db).map { bot in
+                    if (bot == nil) {
+                        ws.send("AUTH_FAILED")
+                        ws.close()
+                        return
                     }
-                    self.controller.addBotConnection(botID: token, ws: ws)
-                    return
+                    ws.send("AUTH_SECCESS")
+                    self.controller.addBotConnection(botID: id, ws: ws)
+                    ws.onClose.whenComplete { _ in
+                        self.controller.deleteBotConnection(botID: id)
+                    }
                 }
-                ws.send("AUTH_FAILD")
+            }
+            else {
+                ws.send("AUTH_FAILED")
                 ws.close()
             }
-        }
-        else {
-            ws.send("AUTH_FAILD")
-            ws.close();
+            
         }
     }
     
