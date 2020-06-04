@@ -161,7 +161,10 @@ struct BotController: RouteCollection {
                 ws.close()
             }
         }
-        
+        else {
+            ws.send("AUTH_FAILD")
+            ws.close();
+        }
     }
     
     
