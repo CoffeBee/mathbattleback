@@ -49,6 +49,9 @@ final class User: Model {
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
     
+    @Field(key: "is_active")
+    var isActive: Bool
+        
     @Timestamp(key: "updated_at", on: .update)
     var updatedAt: Date?
     
@@ -62,6 +65,7 @@ final class User: Model {
         self.passwordHash = passwordHash
         self.isAdmin = isAdmin
         self.apiLevel = apiLevel
+        self.isActive = false
     }
 }
 
@@ -83,7 +87,10 @@ extension User {
     
     func createToken(source: SessionSource) throws -> Token {
         let calendar = Calendar(identifier: .gregorian)
-        let expiryDate = calendar.date(byAdding: .day, value: 1, to: Date())
+        var expiryDate = calendar.date(byAdding: .month, value: 1, to: Date())
+        if (source == .signup) {
+            expiryDate = calendar.date(byAdding: .day, value: 1, to: Date())
+        }
         return try Token(userId: requireID(),
                          token: [UInt8].random(count: 16).base64, source: source, expiresAt: expiryDate)
     }
@@ -102,6 +109,6 @@ extension User: ModelAuthenticatable {
     static let passwordHashKey = \User.$passwordHash
     
     func verify(password: String) throws -> Bool {
-        try Bcrypt.verify(password, created: self.passwordHash)
+        return try Bcrypt.verify(password, created: self.passwordHash)
     }
 }
