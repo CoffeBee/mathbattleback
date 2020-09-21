@@ -155,7 +155,7 @@ struct BotController: RouteCollection {
                         ws.close()
                         return
                     }
-                    ws.send("AUTH_SECCESS")
+                    ws.send("AUTH_SUCCESS")
                     self.controller.addBotConnection(botID: id, ws: ws)
                     ws.onClose.whenComplete { _ in
                         self.controller.deleteBotConnection(botID: id)
