@@ -9,6 +9,10 @@ struct UserSignup: Content {
     let surname: String
 }
 
+struct Confirmation: Content {
+    let token: String
+}
+
 struct NewSession: Content {
     let token: String
     let user: User.Public
@@ -25,7 +29,7 @@ struct UserController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let usersRoute = routes.grouped("users")
         usersRoute.post("signup", use: create)
-        
+        usersRoute.get("confirm", use: confirm)
         let tokenProtected = usersRoute.grouped(Token.authenticator())
         tokenProtected.get("me", use: getMyOwnUser)
         
@@ -63,8 +67,40 @@ struct UserController: RouteCollection {
         }
     }
     
+    fileprivate func confirm(req: Request) throws -> EventLoopFuture<NewSession> {
+        let tokenValue = try req.content.decode(Confirmation.self).token
+        return Token.query(on: req.db)
+            .filter(\.$value == tokenValue)
+            .filter((\.$source == .signup))
+            .with(\.$user)
+            .first()
+            .unwrap(or: Abort(.unauthorized))
+            .flatMapThrowing { token in
+                token.user.isActive = true;
+                token.user.save(on: req.db)
+                return NewSession(token: token.value, user: try token.user.asPublic())
+        }
+    }
+    
     fileprivate func login(req: Request) throws -> EventLoopFuture<NewSession> {
         let user = try req.auth.require(User.self)
+        if (!user.isActive) {
+            guard let date = user.createdAt else {
+                return req.eventLoop.future(error: Abort(.internalServerError))
+                
+            }
+            let calendar = Calendar(identifier: .gregorian)
+            guard let expiryDate = calendar.date(byAdding: .day, value: 1, to: date) else {
+                return req.eventLoop.future(error: Abort(.internalServerError))
+                
+            }
+            if (expiryDate > Date()) {
+                return user.delete(on: req.db).eventLoop.future(error: Abort(.unauthorized))
+            }
+            return req.eventLoop.future(error: Abort(.preconditionRequired))
+        }
+        
+        
         let token = try user.createToken(source: .login)
         
         return token.save(on: req.db).flatMapThrowing {
@@ -80,6 +116,23 @@ struct UserController: RouteCollection {
         User.query(on: req.db)
             .filter(\.$username == username)
             .first()
-            .map { $0 != nil }
+            .map { user in
+                guard let userr = user else {
+                    return false;
+                }
+                guard let date = userr.createdAt else {
+                    return false;
+                }
+                let calendar = Calendar(identifier: .gregorian)
+                guard let expiryDate = calendar.date(byAdding: .day, value: 1, to: date) else {
+                    return true;
+                }
+
+                if (!userr.isActive && expiryDate > Date()) {
+                    userr.delete(on: req.db)
+                    return false
+                }
+               return true
+        }
     }
 }
