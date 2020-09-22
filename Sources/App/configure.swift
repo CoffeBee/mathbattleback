@@ -1,6 +1,7 @@
 import Fluent
 import FluentPostgresDriver
 import Vapor
+import Mailgun
 
 // configures your application
 public func configure(_ app: Application) throws {
@@ -46,6 +47,12 @@ public func configure(_ app: Application) throws {
     // register routes
     try routes(app)
     database_init(app)
-    //
+    // mailgun config
+    app.mailgun.configuration = .environment
+    app.mailgun.defaultDomain = .registration
 }
 
+
+extension MailgunDomain {
+    static var registration: MailgunDomain { .init("mg.math.silaeder.ru", .eu) }
+}

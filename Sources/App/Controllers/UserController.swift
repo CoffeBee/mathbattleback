@@ -1,6 +1,7 @@
 
 import Vapor
 import Fluent
+import Mailgun
 
 struct UserSignup: Content {
     let username: String
@@ -37,7 +38,7 @@ struct UserController: RouteCollection {
         passwordProtected.post("login", use: login)
     }
     
-    fileprivate func create(req: Request) throws -> EventLoopFuture<NewSession> {
+    fileprivate func create(req: Request) throws -> EventLoopFuture<ClientResponse> {
         try UserSignup.validate(req)
         let userSignup = try req.content.decode(UserSignup.self)
         let user = try User.create(from: userSignup)
@@ -64,6 +65,15 @@ struct UserController: RouteCollection {
             }
         }.flatMapThrowing {
             NewSession(token: token.value, user: try user.asPublic())
+        }.flatMap{
+            let message = MailgunMessage(
+                from: "signup@math.silaeder.ru",
+                to: user.username,
+                subject: "Mathbattle регистрация",
+                text: "",
+                html: "Hi, Thanks for using math.silaeder.ru! Please confirm your email address by clicking on the link below. We'll communicate with you from time to time via email so it's important that we have an up-to-date email address on file. http://math.silaeder.ru/activate/\(token.value)"
+            )
+            return req.mailgun().send(message)
         }
     }
     
