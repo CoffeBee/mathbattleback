@@ -40,6 +40,9 @@ public func configure(_ app: Application) throws {
     app.migrations.add(DeleteBotOwnerMessage())
     app.migrations.add(AddUserActivation())
     
+    #if os(OSX)
+        try app.autoMigrate().wait()
+    #endif
     
     app.commands.use(UserCommand(), as: "createsuperuser")
     app.commands.use(CourseCommand(), as: "createsupercourse")
