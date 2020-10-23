@@ -32,7 +32,7 @@ struct UserController: RouteCollection {
         usersRoute.post("signup", use: create)
         usersRoute.get("confirm", use: confirm)
         let tokenProtected = usersRoute.grouped(Token.authenticator())
-        tokenProtected.get("me", use: getMyOwnUser)
+        tokenProtected.post("me", use: getMyOwnUser)
         
         let passwordProtected = usersRoute.grouped(User.authenticator())
         passwordProtected.post("login", use: login)
